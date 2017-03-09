@@ -1,0 +1,99 @@
+#!/bin/bash
+
+chromite_presetup() {
+  chromite_dir=dotfiles/chromite/
+  sudo cp ${chromite_dir}etc/rc.local /etc/
+  sudo cp ${chromite_dir}etc/fstab /etc/
+  sudo cp ${chromite_dir}remount-sd /usr/local/bin/
+  sudo remount-sd
+  cd .
+}
+
+STD_INPUT_ERR_MSG="This isn't rocket science you nit wit! Let's try that again\n\n"
+while true; do
+  read -p  "Is this a chromebook with crouton? " yn
+  case $yn in
+    [Yy]* ) chromite_presetup
+            default_install_dir=~/e/
+            is_chromite=true
+            break;;
+    [Nn]* ) default_install_dir=~/
+            is_chromite=false
+            break;;
+    * ) printf $STD_INPUT_ERR_MSG;; 
+  esac
+done
+
+is_gui=false
+while true; do
+  read -p "Gui(g) or server(s)? " gs
+  case $gs in
+    [Gg]* ) is_gui=true
+            break;;
+    [Ss]* ) break;;
+    * ) printf $STD_INPUT_ERR_MSG;;
+  esac
+done
+
+type apt-get &>/dev/null
+if [ $? -ne 0 ]; then 
+  echo "This system doesn't have the apt package manager. I don't know what to do."
+  echo "Maybe you should modify this script to add support for additional package managers???"
+  exit
+fi
+
+packages_to_install=$(cat favorite-packages)
+if $is_gui; then 
+  packages_to_install="$packages_to_install $(cat favorite-gui-packages)"
+fi
+sudo apt-get update && sudo apt-get install $packages_to_install
+
+echo
+if [ ! -f ~/.ssh/id_rsa.pub ]; then
+  echo "Hmmmm, no ssh keys. We'll make one then"
+  echo
+  ssh-keygen -t rsa
+fi
+
+echo "********************************************************************"
+echo "Make sure the following ssh key is available to your github account:"
+cat ~/.ssh/id_rsa.pub
+
+echo
+read -sp "***Press enter to clone .linuxLove into $default_install_dir***"
+echo
+
+if [ ! -d ${default_install_dir}.linuxLove ]; then 
+  mkdir ${default_install_dir}.linuxLove 
+fi
+
+cd ${default_install_dir}.linuxLove
+
+if [ ! -d .git ]; then 
+  git clone git@github.com:dylanPowers/.linuxLove.git ./
+else
+  git pull
+fi
+
+type dart &>/dev/null
+if [ $? -ne 0 ]; then
+  # Curtesy of https://www.dartlang.org/install/linux
+  sudo sh -c 'curl https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -'
+  sudo sh -c 'curl \
+    https://storage.googleapis.com/download.dartlang.org/linux/debian/dart_stable.list \
+    > \
+    /etc/apt/sources.list.d/dart_stable.list'
+
+
+  sudo apt-get update && sudo apt-get install dart
+fi
+
+pub global activate --source path .
+be-happy --interactive
+
+standard_args="--est --bash --htop --git --vim"
+if $is_gui; then
+  ./be-happy --awesome --rox $standard_args
+else
+  ./be-happy $standard_args
+fi

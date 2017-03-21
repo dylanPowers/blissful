@@ -59,16 +59,24 @@ while [[ $continue != 'y' ]]; do
   read -p "Clone $github_url into $install_dir? (y/n): " continue
 done
 
-if [ ! -d $install_dir ]; then
-  mkdir $install_dir
-fi
+checkout_git_dep() { install_dir=$1; remote=$2; version=$3
+  if [[ ! -d $install_dir/.git ]]; then
+    mkdir -p $install_dir
+    git clone "$remote" "$install_dir"
+    pushd "$install_dir"
+  else
+    pushd "$install_dir"
+    git fetch "$remote"
+  fi
+
+  if ! git log --pretty=oneline --decorate -n 1 | grep -q "$version"; then
+    git checkout "$version"
+  fi
+  popd
+}
+
+checkout_git_dep $install_dir $github_url master
 
 cd $install_dir
-
-if [ ! -d .git ]; then
-  git clone $github_url ./
-else
-  git pull
-fi
 
 instant-bliss --interactive

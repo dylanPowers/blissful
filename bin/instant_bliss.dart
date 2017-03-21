@@ -6,7 +6,7 @@ import 'dart:io';
 import 'package:args/args.dart';
 import 'package:yaml/yaml.dart';
 
-import 'package:linux_happiness/broadcasted_stdin.dart';
+import 'package:instant_bliss/advanced_processing.dart';
 
 BroadcastedStdin stdin = new BroadcastedStdin();
 
@@ -70,7 +70,7 @@ void help(ArgParser parser, [Dotfiles dotfiles]) {
   }
 
   print('''
-Usage: be-happy [<options>] <apps or envs>
+Usage: instant-bliss [<options>] <apps or envs>
 
 Be happy while using Linux!
 Warning! When typing, rainbows may erupt from your fingertips.
@@ -201,6 +201,7 @@ class Config {
   HashSet<String> get debPkgs => _debPkgs;
   List<SymbolicLink> links = [];
   List<SymbolicLink> rootLinks = [];
+  List<String> rootCopies = [];
 
   Config();
 
@@ -237,6 +238,8 @@ class Config {
       case 'root-links':
         rootLinks = (v as List).map((item) =>
             new SymbolicLink.fromPrimitive(item)); break;
+      case 'root-copies':
+        rootCopies = (v as List<String>); break;
       default:
         return false;
     }
@@ -442,45 +445,134 @@ class SymbolicLink {
   void link(String dotfilesPath, String installPath, dryRun,
             [user = '']) {
     var workingDir = new Directory('.').resolveSymbolicLinksSync();
-    var targetUri = new Uri.file("$workingDir/${dotfilesPath}/${target}")
-        .normalizePath();
-    var linkUri = new Uri.file("${installPath}/${linkName}").normalizePath();
+    var targetUri = new Uri.file("$workingDir/${dotfilesPath}/${target}");
+    targetUri = _fileUriNormalize(targetUri);
+    var linkUri = new Uri.file("${installPath}/${linkName}");
+    linkUri = _fileUriNormalize(linkUri);
+
     var link = new Link.fromUri(linkUri);
-    var linkType = link.statSync().type;
-    if (linkType != FileSystemEntityType.NOT_FOUND) {
+    var linkType = _fsTypeSync(linkUri);
 
-      var currentTarget = new Uri.file(link.resolveSymbolicLinksSync())
-          .normalizePath();
-
-      if (linkType == FileSystemEntityType.LINK) {
-        print("Link at ${link.path} exists");
-      }
+    if (linkType != FileSystemEntityType.NOT_FOUND &&
+        linkType != FileSystemEntityType.LINK || _isLinkValid(link)) {
+      var currentTarget = new Uri.file(link.resolveSymbolicLinksSync());
+      currentTarget = _fileUriNormalize(currentTarget);
 
       if (currentTarget != targetUri) {
-        if (linkType == FileSystemEntityType.FILE) {
-          if (dryRun) print("Copy ${currentTarget.path} to ${targetUri.path}");
-        } else if (linkType == FileSystemEntityType.DIRECTORY) {
-          if (dryRun) print("Copy recursively ${currentTarget.path} to "
-                            "${targetUri.path}");
-        }
-        if (dryRun) print("Link ${link.path} to ${targetUri.path}");
+        _backupTarget(currentTarget, targetUri, dryRun);
       } else {
-        if (dryRun) print("Skipping ${link.path}");
+        if (dryRun) print("Skipping ${link.path}. Already configured");
+        return;
       }
-    } else {
-      if (dryRun) print("Link ${link.path} to ${targetUri.path}");
     }
+
+    if (FileStat.statSync(targetUri.path).type ==
+        FileSystemEntityType.NOT_FOUND && !dryRun) {
+       print("Skipping ${link.path}. Link and target don't exist");
+       return;
+    }
+
+    _forceCreateLink(link, linkUri, linkType, targetUri, dryRun);
 
     if (user.isNotEmpty) {
       Process.runSync('chown', ["$user:$user", "${link.path}"]);
     }
-//    try {
-//      link.createSync(target, recursive: true);
-//    } on FileSystemException catch(e) {
-//      print(e);
-//    }
   }
 
   @override
   String toString() => "$linkName -> $target";
+
+  void _backupTarget(Uri currentTarget, Uri expectedTarget, bool dryRun) {
+    var currentTargetType = _fsTypeSync(currentTarget);
+    if (currentTargetType == FileSystemEntityType.FILE) {
+      if (dryRun) print("Copy ${currentTarget.path} to ${expectedTarget.path}");
+      else _copy(currentTarget, expectedTarget);
+    } else if (currentTargetType == FileSystemEntityType.DIRECTORY) {
+      if (dryRun) print("Copy recursively ${currentTarget.path} to "
+                        "${expectedTarget.path}");
+      else _copyDir(currentTarget, expectedTarget);
+    }
+  }
+
+  void _copy(Uri fromUri, Uri toUri) {
+    var from = new File.fromUri(fromUri);
+    var to = new File.fromUri(toUri);
+    if (!to.existsSync()) to.createSync(recursive: true);
+
+    from.copySync(to.path);
+  }
+
+  void _copyDir(Uri fromUri, Uri toUri) {
+    var to = new Directory.fromUri(toUri);
+    if (!to.existsSync()) to.createSync(recursive: true);
+
+    Process.runSync('cp', ['--recursive', '${fromUri.path}/.', '${toUri.path}']);
+  }
+
+  void _deletePath(Uri uri, FileSystemEntityType pathType) {
+    switch (pathType) {
+      case FileSystemEntityType.LINK:
+        new Link.fromUri(uri).deleteSync();
+        break;
+      case FileSystemEntityType.FILE:
+        new File.fromUri(uri).deleteSync();
+        break;
+      case FileSystemEntityType.DIRECTORY:
+        new Directory.fromUri(uri).deleteSync(recursive: true);
+        break;
+    }
+  }
+
+  bool _isLinkValid(Link link) {
+    try {
+      link.resolveSymbolicLinksSync();
+      return true;
+    } on FileSystemException catch (e) {
+      if (e.osError.errorCode == 2) {
+        return false;
+      } else rethrow;
+    }
+  }
+
+  Uri _fileUriNormalize(Uri f) {
+    var norm = f.normalizePath();
+    if (norm.path.endsWith("/")) {
+      norm = new Uri.file(norm.path.substring(0, norm.path.length - 1));
+    }
+
+    return norm;
+  }
+
+  void _forceCreateLink(Link link, Uri linkUri, FileSystemEntityType linkType,
+                        Uri targetUri, bool dryRun) {
+    try {
+      if (linkType != FileSystemEntityType.NOT_FOUND) {
+        if (dryRun) print("Delete ${link.path}");
+        else _deletePath(linkUri, linkType);
+      }
+
+      if (dryRun) print("Link ${link.path} to ${targetUri.path}");
+      else link.createSync(targetUri.path, recursive: true);
+    } on FileSystemException catch (e) {
+      _onFSException(e, linkUri, targetUri);
+    }
+  }
+
+  FileSystemEntityType _fsTypeSync(Uri uri) {
+    var type = FileStat.statSync(uri.path).type;
+    // Now manually check if it's a link
+    if (FileSystemEntity.isLinkSync(uri.path)) {
+      type = FileSystemEntityType.LINK;
+    }
+
+    return type;
+  }
+
+  void _onFSException(FileSystemException e, Uri link, Uri target) {
+    if (e.osError.errorCode == 13) {
+      print("Permission denied. Cannot link ${link.path} to ${target.path}");
+    } else {
+      throw e;
+    }
+  }
 }

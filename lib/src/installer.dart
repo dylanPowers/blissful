@@ -76,7 +76,7 @@ class Installer {
       var args = ['dart', Platform.script.toFilePath()]..addAll(configNames);
       await InteractiveProcess.run(new BroadcastedStdin(), 'sudo', args);
     } else {
-      print("No? Alright, exiting");
+      print("No? Alright, skipping the root required stuff");
     }
   }
 

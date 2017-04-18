@@ -1,5 +1,8 @@
 #!/bin/bash
 
+echo "This script isn't complete yet and untested!"
+exit 1
+
 type apt-get &>/dev/null
 if [ $? -ne 0 ]; then 
   echo "This system doesn't have the apt package manager. I don't know what to do."
@@ -79,4 +82,4 @@ checkout_git_dep $install_dir $github_url master
 
 cd $install_dir
 
-instant-bliss --interactive
+blissful --interactive

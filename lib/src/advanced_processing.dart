@@ -11,35 +11,39 @@ class InteractiveProcess {
   String executable;
   String workingDirectory;
   Map<String, String> environment;
+  bool runInShell = false;
 
   /**
    * This is the same as Process.start except it runs interactively with the
    * user.
    */
-  InteractiveProcess(this.stdin, this.executable,
-                     this.arguments, {this.workingDirectory, this.environment});
+  InteractiveProcess(this.stdin, this.executable, this.arguments,
+      {this.workingDirectory, this.environment, this.runInShell});
 
-  static Future<int> run(BroadcastedStdin stdin,
-                         String executable, List<String> arguments,
-                         {String workingDirectory,
-                         Map<String, String> environment}) {
+  static Future run(BroadcastedStdin stdin, String executable,
+      List<String> arguments, {String workingDirectory,
+        Map<String, String> environment, bool runInShell}) {
     return new InteractiveProcess(stdin, executable, arguments,
-        workingDirectory: workingDirectory,
-        environment: environment).exec();
+        workingDirectory: workingDirectory, environment: environment,
+        runInShell: runInShell).exec();
   }
 
-  Future<int> exec() async {
-    var process = await io.Process.start(executable, arguments,
-                                         workingDirectory: workingDirectory,
-                                         environment: environment);
-    return _enableProcessInteraction(process);
+  Future exec() async {
+    io.Process process = await io.Process.start(executable, arguments,
+        workingDirectory: workingDirectory, environment: environment,
+        runInShell: runInShell);
+    _enableProcessInteraction(process);
+    var exitCode = await process.exitCode;
+    if (exitCode != 0) {
+      throw "Failure running $executable $arguments\n"
+          "Exit code: $exitCode";
+    }
   }
 
-  Future<int> _enableProcessInteraction(io.Process process) {
+  void _enableProcessInteraction(io.Process process) {
     io.stdout.addStream(process.stdout);
     io.stderr.addStream(process.stderr);
     process.stdin.addStream(stdin.stream);
-    return process.exitCode;
   }
 }
 

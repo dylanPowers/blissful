@@ -1,10 +1,7 @@
 #! /usr/bin/env dart
 
 import 'dart:async';
-import 'dart:collection';
-import 'dart:io';
 import 'package:args/args.dart';
-import 'package:yaml/yaml.dart';
 
 import 'package:blissful/blissful.dart';
 

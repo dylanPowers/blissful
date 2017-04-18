@@ -8,7 +8,6 @@ import 'blissful_config.dart';
 class Installer {
   BlissfulConfig configs;
   bool dryRun;
-  bool runAsChild;
   List<String> configNames;
 
   HashSet _appsToInstall = new HashSet<AppBliss>();
@@ -16,34 +15,23 @@ class Installer {
   HashSet<RootBasicBliss> get _configsToInstall => _appsToInstall..addAll(_envsToInstall);
   HashSet<String> _debPkgsToInstall = new HashSet<String>();
 
-  Installer(this.configNames, this.configs, this.dryRun, this.runAsChild) {
+  Installer(this.configNames, this.configs, this.dryRun) {
     if (configNames.isEmpty) throw "No apps or configs were specified";
     _initInstallLists();
   }
 
   Future install() async {
     try {
-      if (!_isSuperUser() && !this.runAsChild
-          && !this.dryRun && _hasRootDependencies()) {
+      if (!_isSuperUser() && !this.dryRun && _hasRootDependencies()) {
         await _obtainRoot();
-      } else {
-        if (_isSuperUser() || dryRun) {
-          await _rootInstall();
-        }
+      }
 
-        if (_isSuperUser() && !dryRun) {
-          var args = [
-            '-s', '/bin/sh',
-            '-c',
-            "dart ${Platform.script.toFilePath()} --run-as-child "
-              "${configNames.reduce((s, name) => s + " " + name)}",
-            Platform.environment['SUDO_USER']];
-          await InteractiveProcess.run(new BroadcastedStdin(), 'su', args);
-        }
+      if (_isSuperUser() || dryRun) {
+        await _rootInstall();
+      }
 
-        if (!_isSuperUser() || dryRun) {
-          await _localInstall();
-        }
+      if (!_isSuperUser() || dryRun) {
+        await _localInstall();
       }
     } finally {
       BroadcastedStdin.killAll();

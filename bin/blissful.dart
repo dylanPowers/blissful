@@ -20,8 +20,7 @@ Future main(List<String> argv) async {
     if (results['help']) {
       help(parser, dotfiles);
     } else {
-      var installer = new Installer(results.rest, dotfiles,
-          results['dry-run'], results['run-as-child']);
+      var installer = new Installer(results.rest, dotfiles, results['dry-run']);
       await installer.install();
     }
   } catch (e) {
@@ -50,7 +49,6 @@ ArgParser setupArgParser() {
       help: '(Experimental) Attempts to reverse a previous install');
   parser.addFlag('help', abbr: 'h', defaultsTo: false, negatable: false,
       help: 'This help message');
-  parser.addFlag('run-as-child', defaultsTo: false, hide: true);
   return parser;
 }
 

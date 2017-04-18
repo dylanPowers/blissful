@@ -113,7 +113,7 @@ class Installer {
       var stdin = new BroadcastedStdin();
       await InteractiveProcess.run(stdin, 'apt-get', ['update']);
       await InteractiveProcess.run(stdin, 'apt-get',
-          ['install', '-y']..addAll(_debPkgsToInstall));
+          ['install', '-y', '--allow-change-held-packages']..addAll(_debPkgsToInstall), runInShell: true);
     }
     print('Installation of debian packages complete\n');
 

@@ -49,7 +49,7 @@ class SymbolicLink {
       }
     }
 
-    if (FileStat.statSync(targetUri.path).type ==
+    if (FileStat.statSync(targetUri.toFilePath()).type ==
         FileSystemEntityType.NOT_FOUND && !dryRun) {
        print("Skipping ${link.path}. Link and target don't exist");
        return;
@@ -68,11 +68,11 @@ class SymbolicLink {
   void _backupTarget(Uri currentTarget, Uri expectedTarget, bool dryRun) {
     var currentTargetType = _fsTypeSync(currentTarget);
     if (currentTargetType == FileSystemEntityType.FILE) {
-      if (dryRun) print("Copy ${currentTarget.path} to ${expectedTarget.path}");
+      if (dryRun) print("Copy ${currentTarget.toFilePath()} to ${expectedTarget.toFilePath()}");
       else _copy(currentTarget, expectedTarget);
     } else if (currentTargetType == FileSystemEntityType.DIRECTORY) {
-      if (dryRun) print("Copy recursively ${currentTarget.path} to "
-                        "${expectedTarget.path}");
+      if (dryRun) print("Copy recursively ${currentTarget.toFilePath()} to "
+                        "${expectedTarget.toFilePath()}");
       else _copyDir(currentTarget, expectedTarget);
     }
   }
@@ -89,7 +89,7 @@ class SymbolicLink {
     var to = new Directory.fromUri(toUri);
     if (!to.existsSync()) to.createSync(recursive: true);
 
-    Process.runSync('cp', ['--recursive', '${fromUri.path}/.', '${toUri.path}']);
+    Process.runSync('cp', ['--recursive', '${fromUri.toFilePath()}/.', '${toUri.toFilePath()}']);
   }
 
   void _deletePath(Uri uri, FileSystemEntityType pathType) {
@@ -134,17 +134,17 @@ class SymbolicLink {
         else _deletePath(linkUri, linkType);
       }
 
-      if (dryRun) print("Link ${link.path} to ${targetUri.path}");
-      else link.createSync(targetUri.path, recursive: true);
+      if (dryRun) print("Link ${link.path} to ${targetUri.toFilePath()}");
+      else link.createSync(targetUri.toFilePath(), recursive: true);
     } on FileSystemException catch (e) {
       _onFSException(e, linkUri, targetUri);
     }
   }
 
   FileSystemEntityType _fsTypeSync(Uri uri) {
-    var type = FileStat.statSync(uri.path).type;
+    var type = FileStat.statSync(uri.toFilePath()).type;
     // Now manually check if it's a link
-    if (FileSystemEntity.isLinkSync(uri.path)) {
+    if (FileSystemEntity.isLinkSync(uri.toFilePath())) {
       type = FileSystemEntityType.LINK;
     }
 
@@ -153,7 +153,7 @@ class SymbolicLink {
 
   void _onFSException(FileSystemException e, Uri link, Uri target) {
     if (e.osError.errorCode == 13) {
-      print("Permission denied. Cannot link ${link.path} to ${target.path}");
+      print("Permission denied. Cannot link ${link.toFilePath()} to ${target.toFilePath()}");
     } else {
       throw e;
     }

@@ -27,7 +27,10 @@ class Installer {
       }
 
       if (_isSuperUser() || dryRun) {
-        await _rootInstall();
+
+        var user = _isSuperUser() ?
+          Platform.environment['SUDO_USER'] : Platform.environment['USER'];
+        await _rootInstall(user);
       }
 
       if (!_isSuperUser() || dryRun) {
@@ -90,7 +93,7 @@ class Installer {
     return _debPkgsToInstall.isNotEmpty;
   }
 
-  Future _rootInstall() async {
+  Future _rootInstall(String user) async {
     print('***********************************');
     print('*** Running root install steps ****');
     print('');
@@ -106,7 +109,7 @@ class Installer {
     print('Installation of debian packages complete\n');
 
     for (var conf in _configsToInstall) {
-      conf.rootInstall(dryRun);
+      conf.rootInstall(dryRun, user);
     }
   }
 

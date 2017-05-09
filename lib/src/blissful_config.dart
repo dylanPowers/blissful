@@ -152,9 +152,10 @@ class RootBasicBliss extends BasicBliss {
     print("Linking complete");
   }
 
-  void _setupRootLinks(bool dryRun) {
+  void _setupRootLinks(bool dryRun, String user) {
     rootLinks.forEach((ln) => ln.link('root', '/.', dryRun));
     rootBinaries.forEach((ln) => ln.link('bin', '/usr/local/bin', dryRun));
+    Process.runSync('chown', ['-R', "$user:$user", 'root', 'bin']);
     print("Linking complete");
   }
 
@@ -172,9 +173,9 @@ class RootBasicBliss extends BasicBliss {
     print('');
   }
 
-  void rootInstall(bool dryRun) {
+  void rootInstall(bool dryRun, String user) {
     _printName();
-    _setupRootLinks(dryRun);
+    _setupRootLinks(dryRun, user);
     print('');
   }
 }

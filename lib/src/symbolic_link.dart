@@ -25,8 +25,7 @@ class SymbolicLink {
     throw "Invalid link ${item}";
   }
 
-  void link(String dotfilesPath, String installPath, dryRun,
-            [user = '']) {
+  void link(String dotfilesPath, String installPath, dryRun) {
     var workingDir = new Directory('.').resolveSymbolicLinksSync();
     var targetUri = new Uri.file("$workingDir/${dotfilesPath}/${target}");
     targetUri = _fileUriNormalize(targetUri);
@@ -56,10 +55,6 @@ class SymbolicLink {
     }
 
     _forceCreateLink(link, linkUri, linkType, targetUri, dryRun);
-
-    if (user.isNotEmpty) {
-      Process.runSync('chown', ["$user:$user", "${link.path}"]);
-    }
   }
 
   @override

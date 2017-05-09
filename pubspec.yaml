@@ -2,7 +2,7 @@ name: blissful
 description: >
   A configuration manager for Linux. It currently only supports Debian derived
   distros, but other distros could be trivially supported.
-version: 0.0.2-beta
+version: 0.0.3-beta
 author: Dylan Powers <dylan.kyle.powers@gmail.com>
 executables:
   blissful: blissful

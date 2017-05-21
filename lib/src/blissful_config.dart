@@ -159,6 +159,25 @@ class RootBasicBliss extends BasicBliss {
     print("Linking complete");
   }
 
+  void _setupRootCopies(bool dryRun, String user) {
+    rootCopies.forEach((f) {
+      var existingF = new File("/$f");
+      if (existingF.existsSync()) {
+        if (dryRun) print("Backing up /$f to root/$f.back");
+        else {
+          existingF.copySync("root/$f.back");
+          existingF.delete();
+        }
+      }
+
+      if (dryRun) print("Copying root/$f to /$f");
+      else new File("root/$f").copySync("/$f");
+    });
+
+    Process.runSync('chown', ['-R', "$user:$user", 'root']);
+    print("Copying complete");
+  }
+
   Future localInstall(bool dryRun) async {
     _preLocalInstall();
     _setupLinks(dotfilesPath, installPath, dryRun);
@@ -176,6 +195,7 @@ class RootBasicBliss extends BasicBliss {
   void rootInstall(bool dryRun, String user) {
     _printName();
     _setupRootLinks(dryRun, user);
+    _setupRootCopies(dryRun, user);
     print('');
   }
 }

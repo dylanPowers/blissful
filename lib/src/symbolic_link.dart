@@ -1,64 +1,90 @@
 import 'dart:io';
 
-class SymbolicLink {
-  final String linkName;
+class SyncedFSNode {
+  final String syncName;
   final String target;
 
-  SymbolicLink(String target, String linkName) :
+  SyncedFSNode(String target, String syncName) :
       this.target = target,
-      this.linkName = linkName;
-  SymbolicLink.same(String link) :
+      this.syncName = syncName;
+  SyncedFSNode.same(String link) :
       this(link, link);
 
-  factory SymbolicLink.fromPrimitive(dynamic item) {
+  factory SyncedFSNode.fromPrimitive(dynamic item) {
     if (item is Map) {
       if (item.keys.length > 1 || item.keys.isEmpty) {
         throw "Invalid number of keys for map $item";
       }
 
       var k = item.keys.first as String;
-      return new SymbolicLink(k, item[k]);
+      return new SyncedFSNode(k, item[k]);
     } else if (item is String) {
-      return new SymbolicLink.same(item);
+      return new SyncedFSNode.same(item);
     }
 
-    throw "Invalid link ${item}";
+    throw "Invalid fs node specifier ${item}";
+  }
+
+  String _workingDir;
+  Uri _targetUri;
+  Uri _syncUri;
+  void _initURIs(String dotfilesPath, String installPath) {
+    _workingDir = new Directory('.').resolveSymbolicLinksSync();
+    _targetUri = new Uri.file("$_workingDir/${dotfilesPath}/${target}");
+    _targetUri = _fileUriNormalize(_targetUri);
+    _syncUri = new Uri.file("${installPath}/${syncName}");
   }
 
   void link(String dotfilesPath, String installPath, dryRun) {
-    var workingDir = new Directory('.').resolveSymbolicLinksSync();
-    var targetUri = new Uri.file("$workingDir/${dotfilesPath}/${target}");
-    targetUri = _fileUriNormalize(targetUri);
-    var linkUri = new Uri.file("${installPath}/${linkName}");
-    linkUri = _fileUriNormalize(linkUri);
+    _initURIs(dotfilesPath, installPath);
 
-    var link = new Link.fromUri(linkUri);
-    var linkType = _fsTypeSync(linkUri);
+    var link = new Link.fromUri(_syncUri);
+    var linkType = _fsTypeSync(_syncUri);
 
     if (linkType != FileSystemEntityType.NOT_FOUND &&
         linkType != FileSystemEntityType.LINK || _isLinkValid(link)) {
       var currentTarget = new Uri.file(link.resolveSymbolicLinksSync());
       currentTarget = _fileUriNormalize(currentTarget);
 
-      if (currentTarget != targetUri) {
-        _backupTarget(currentTarget, targetUri, dryRun);
+      if (currentTarget != _targetUri) {
+        _backupTarget(currentTarget, _targetUri, dryRun);
       } else {
         if (dryRun) print("Skipping ${link.path}. Already configured");
         return;
       }
     }
 
-    if (FileStat.statSync(targetUri.toFilePath()).type ==
+    if (FileStat.statSync(_targetUri.toFilePath()).type ==
         FileSystemEntityType.NOT_FOUND && !dryRun) {
        print("Skipping ${link.path}. Link and target don't exist");
        return;
     }
 
-    _forceCreateLink(link, linkUri, linkType, targetUri, dryRun);
+    _forceCreateLink(link, _syncUri, linkType, _targetUri, dryRun);
+  }
+
+  void cp(String dotfilesPath, String installPath, dryRun) {
+    _initURIs(dotfilesPath, installPath);
+
+    var existingF = new File.fromUri(_syncUri);
+    var backupF = new File(_targetUri.toFilePath() + ".bak");
+    if (existingF.existsSync()) {
+      if (dryRun) print("Backing up ${_syncUri.toFilePath()} to ${backupF.path}");
+      else {
+        existingF.copySync("${backupF.path}");
+        _deletePath(_syncUri, _fsTypeSync(_syncUri));
+      }
+    }
+
+    if (dryRun) print("Copying ${_targetUri.toFilePath()} to ${_syncUri.toFilePath()}");
+    else {
+      new File.fromUri(_targetUri).copySync(_syncUri.toFilePath());
+      backupF.renameSync(_targetUri.toFilePath());
+    }
   }
 
   @override
-  String toString() => "$linkName -> $target";
+  String toString() => "$syncName -> $target";
 
   void _backupTarget(Uri currentTarget, Uri expectedTarget, bool dryRun) {
     var currentTargetType = _fsTypeSync(currentTarget);

@@ -61,8 +61,8 @@ class BlissfulConfig {
 class BasicBliss {
   String name = '';
 
-  List<SymbolicLink> binaries = [];
-  List<SymbolicLink> rootBinaries = [];
+  List<SyncedFSNode> binaries = [];
+  List<SyncedFSNode> rootBinaries = [];
   String dotfilesPath = _dotfilesPathDefault;
   String installPath = _installPathDefault;
   HashSet<String> _debPkgs = new HashSet<String>();
@@ -83,10 +83,10 @@ class BasicBliss {
     switch (k) {
       case 'bin':
         binaries = (v as List).map((item) =>
-            new SymbolicLink.fromPrimitive(item)); break;
+            new SyncedFSNode.fromPrimitive(item)); break;
       case 'root-bin':
         rootBinaries = (v as List).map((item) =>
-            new SymbolicLink.fromPrimitive(item)); break;
+            new SyncedFSNode.fromPrimitive(item)); break;
       case 'dotfiles-path':
         dotfilesPath += '/' + (v as String);
         if (installPath == _installPathDefault) installPath += '/' + v;
@@ -108,9 +108,9 @@ class BasicBliss {
 
 class RootBasicBliss extends BasicBliss {
   String info = '';
-  List<SymbolicLink> links = [];
-  List<SymbolicLink> rootLinks = [];
-  List<String> rootCopies = [];
+  List<SyncedFSNode> links = [];
+  List<SyncedFSNode> rootLinks = [];
+  List<SyncedFSNode> rootCopies = [];
 
   RootBasicBliss.fromMap(String name, Map<String, dynamic> map) : super.fromMap(name, map);
 
@@ -123,12 +123,13 @@ class RootBasicBliss extends BasicBliss {
           info = v as String; break;
         case 'links':
           links = (v as List).map((item) =>
-              new SymbolicLink.fromPrimitive(item)); break;
+              new SyncedFSNode.fromPrimitive(item)); break;
         case 'root-links':
           rootLinks = (v as List).map((item) =>
-              new SymbolicLink.fromPrimitive(item)); break;
+              new SyncedFSNode.fromPrimitive(item)); break;
         case 'root-copies':
-          rootCopies = (v as List<String>); break;
+          rootCopies = (v as List).map((item) =>
+              new SyncedFSNode.fromPrimitive(item)); break;
         default:
           return false;
       }
@@ -155,26 +156,11 @@ class RootBasicBliss extends BasicBliss {
   void _setupRootLinks(bool dryRun, String user) {
     rootLinks.forEach((ln) => ln.link('root', '/.', dryRun));
     rootBinaries.forEach((ln) => ln.link('bin', '/usr/local/bin', dryRun));
-    Process.runSync('chown', ['-R', "$user:$user", 'root', 'bin']);
     print("Linking complete");
   }
 
   void _setupRootCopies(bool dryRun, String user) {
-    rootCopies.forEach((f) {
-      var existingF = new File("/$f");
-      if (existingF.existsSync()) {
-        if (dryRun) print("Backing up /$f to root/$f.back");
-        else {
-          existingF.copySync("root/$f.back");
-          existingF.delete();
-        }
-      }
-
-      if (dryRun) print("Copying root/$f to /$f");
-      else new File("root/$f").copySync("/$f");
-    });
-
-    Process.runSync('chown', ['-R', "$user:$user", 'root']);
+    rootCopies.forEach((f) => f.cp('root', '/.', dryRun));
     print("Copying complete");
   }
 
@@ -196,6 +182,7 @@ class RootBasicBliss extends BasicBliss {
     _printName();
     _setupRootLinks(dryRun, user);
     _setupRootCopies(dryRun, user);
+    Process.runSync('chown', ['-R', "$user:$user", 'root', 'bin']);
     print('');
   }
 }

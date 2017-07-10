@@ -1,25 +1,24 @@
 import 'dart:io';
 
 class SyncedFSNode {
+  final bool binary;
   final String syncName;
   final String target;
 
-  SyncedFSNode(String target, String syncName) :
-      this.target = target,
-      this.syncName = syncName;
-  SyncedFSNode.same(String link) :
-      this(link, link);
+  SyncedFSNode(this.target, this.syncName, [ this.binary = false ]);
+  SyncedFSNode.same(String link, [binary = false]) :
+      this(link, link, binary);
 
-  factory SyncedFSNode.fromPrimitive(dynamic item) {
+  factory SyncedFSNode.fromPrimitive(dynamic item, bool binary) {
     if (item is Map) {
       if (item.keys.length > 1 || item.keys.isEmpty) {
         throw "Invalid number of keys for map $item";
       }
 
       var k = item.keys.first as String;
-      return new SyncedFSNode(k, item[k]);
+      return new SyncedFSNode(k, item[k], binary);
     } else if (item is String) {
-      return new SyncedFSNode.same(item);
+      return new SyncedFSNode.same(item, binary);
     }
 
     throw "Invalid fs node specifier ${item}";
@@ -102,6 +101,7 @@ class SyncedFSNode {
     var from = new File.fromUri(fromUri);
     var to = new File.fromUri(toUri);
     if (!to.existsSync()) to.createSync(recursive: true);
+    if (binary) Process.runSync('chmod', ['+x', '${toUri.toFilePath()}']);
 
     from.copySync(to.path);
   }

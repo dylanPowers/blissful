@@ -83,10 +83,10 @@ class BasicBliss {
     switch (k) {
       case 'bin':
         binaries = (v as List).map((item) =>
-            new SyncedFSNode.fromPrimitive(item)); break;
+            new SyncedFSNode.fromPrimitive(item, true)); break;
       case 'root-bin':
         rootBinaries = (v as List).map((item) =>
-            new SyncedFSNode.fromPrimitive(item)); break;
+            new SyncedFSNode.fromPrimitive(item, true)); break;
       case 'dotfiles-path':
         dotfilesPath += '/' + (v as String);
         if (installPath == _installPathDefault) installPath += '/' + v;
@@ -123,13 +123,13 @@ class RootBasicBliss extends BasicBliss {
           info = v as String; break;
         case 'links':
           links = (v as List).map((item) =>
-              new SyncedFSNode.fromPrimitive(item)); break;
+              new SyncedFSNode.fromPrimitive(item, false)); break;
         case 'root-links':
           rootLinks = (v as List).map((item) =>
-              new SyncedFSNode.fromPrimitive(item)); break;
+              new SyncedFSNode.fromPrimitive(item, false)); break;
         case 'root-copies':
           rootCopies = (v as List).map((item) =>
-              new SyncedFSNode.fromPrimitive(item)); break;
+              new SyncedFSNode.fromPrimitive(item, false)); break;
         default:
           return false;
       }

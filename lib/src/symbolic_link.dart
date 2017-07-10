@@ -78,7 +78,9 @@ class SyncedFSNode {
     if (dryRun) print("Copying ${_targetUri.toFilePath()} to ${_syncUri.toFilePath()}");
     else {
       new File.fromUri(_targetUri).copySync(_syncUri.toFilePath());
-      backupF.renameSync(_targetUri.toFilePath());
+      if (backupF.existsSync()) {
+        backupF.renameSync(_targetUri.toFilePath());
+      }
     }
   }
 

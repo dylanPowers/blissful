@@ -1,7 +1,9 @@
 #!/bin/bash
 
+set -e
+
 echo "This script isn't complete yet and untested!"
-exit 1
+#exit 1
 
 type apt-get &>/dev/null
 if [ $? -ne 0 ]; then 
@@ -13,7 +15,6 @@ fi
 packages_to_install="git ssh apt-transport-https"
 sudo apt-get update && sudo apt-get install $packages_to_install
 
-
 if ! type dart &>/dev/null; then
   # Curtesy of https://www.dartlang.org/install/linux
   sudo sh -c 'curl https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -'
@@ -23,6 +24,10 @@ if ! type dart &>/dev/null; then
     /etc/apt/sources.list.d/dart_stable.list'
 
   sudo apt-get update && sudo apt-get install dart
+fi
+
+if ! type pub &>/dev/null; then
+	sudo ln -s /usr/lib/dart/bin/pub /usr/local/bin/pub
 fi
 
 pub global activate --source path .

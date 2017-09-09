@@ -32,18 +32,27 @@ class InteractiveProcess {
     io.Process process = await io.Process.start(executable, arguments,
         workingDirectory: workingDirectory, environment: environment,
         runInShell: runInShell);
-    _enableProcessInteraction(process);
+    var handle = _enableProcessInteraction(process);
     var exitCode = await process.exitCode;
-    if (exitCode != 0) {
+		print("Trying to get the length");
+		try {
+			var length = await io.stdin.length.timeout(new Duration(seconds: 1));
+			print("Is stdin empty? ${length}");
+		} catch (e) {
+			print("Nope, not happening");
+		}
+    await handle.timeout(Duration.ZERO);
+
+		if (exitCode != 0) {
       throw "Failure running $executable $arguments\n"
           "Exit code: $exitCode";
     }
   }
 
-  void _enableProcessInteraction(io.Process process) {
+  Future _enableProcessInteraction(io.Process process) {
     io.stdout.addStream(process.stdout);
     io.stderr.addStream(process.stderr);
-    process.stdin.addStream(stdin.stream);
+    return process.stdin.addStream(stdin.stream);
   }
 }
 
@@ -61,6 +70,7 @@ class BroadcastedStdin {
   factory BroadcastedStdin() {
     if (_instance == null) {
       _instance = new BroadcastedStdin._();
+			_instance._stdin.forEach((s) { print("DD: ${s}"); });
     }
 
     return _instance;
@@ -69,7 +79,7 @@ class BroadcastedStdin {
   BroadcastedStdin._();
 
   /**
-   * This will kill all instances of this listener. Call this when program
+   * This will kill all instances of this listener. Call this when progrm
    * execution needs to finished. Failing to call this will result in a program
    * that will never end as it will be stuck waiting on user input.
    */

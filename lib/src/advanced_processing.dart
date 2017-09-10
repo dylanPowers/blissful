@@ -13,6 +13,8 @@ class InteractiveProcess {
   Map<String, String> environment;
   bool runInShell = false;
 
+  StreamSubscription<List<int>> _stdinHandle;
+
   /**
    * This is the same as Process.start except it runs interactively with the
    * user.
@@ -29,30 +31,25 @@ class InteractiveProcess {
   }
 
   Future exec() async {
+    print("Starting process ${executable} ${arguments}");
     io.Process process = await io.Process.start(executable, arguments,
         workingDirectory: workingDirectory, environment: environment,
         runInShell: runInShell);
-    var handle = _enableProcessInteraction(process);
+    _enableProcessInteraction(process);
     var exitCode = await process.exitCode;
-		print("Trying to get the length");
-		try {
-			var length = await io.stdin.length.timeout(new Duration(seconds: 1));
-			print("Is stdin empty? ${length}");
-		} catch (e) {
-			print("Nope, not happening");
-		}
-    await handle.timeout(Duration.ZERO);
+    print("Process exited");
+    await _stdinHandle.cancel();
 
-		if (exitCode != 0) {
+    if (exitCode != 0) {
       throw "Failure running $executable $arguments\n"
           "Exit code: $exitCode";
     }
   }
 
-  Future _enableProcessInteraction(io.Process process) {
+  void _enableProcessInteraction(io.Process process) {
     io.stdout.addStream(process.stdout);
     io.stderr.addStream(process.stderr);
-    return process.stdin.addStream(stdin.stream);
+    _stdinHandle = stdin.pipe(process.stdin);
   }
 }
 
@@ -61,22 +58,25 @@ class InteractiveProcess {
  * solves the problem of wanting to pipe stdin to multiple processes.
  */
 class BroadcastedStdin {
-  Stream<List<int>> get stream => _stdin;
-
   static StreamSubscription _broadcastSubscript;
   static BroadcastedStdin _instance;
-  Stream _stdin = io.stdin.asBroadcastStream(onListen: _onBroadcastListen);
+  Stream _stdin = io.stdin.asBroadcastStream(onListen: _onBroadcastListen,
+      onCancel: _onBroadcastListenCancel);
 
   factory BroadcastedStdin() {
     if (_instance == null) {
       _instance = new BroadcastedStdin._();
-			_instance._stdin.forEach((s) { print("DD: ${s}"); });
     }
 
     return _instance;
   }
 
   BroadcastedStdin._();
+
+  StreamSubscription<List<int>> pipe(StreamConsumer consumer) {
+    _stdin.pipe(consumer);
+    return _broadcastSubscript;
+  }
 
   /**
    * This will kill all instances of this listener. Call this when progrm
@@ -90,6 +90,15 @@ class BroadcastedStdin {
   }
 
   static void _onBroadcastListen(StreamSubscription streamSubscript) {
+    print("Broadcast listening now");
     _broadcastSubscript = streamSubscript;
+  }
+
+  static void _onBroadcastListenCancel(StreamSubscription streamSubscript) {
+    print("Broadcast listen cancel");
+    // "If...[the broadcast stream]...later gets a new listener,
+    // the [onListen] function is called again."
+    // I've actually found this to not be true, or else we'd have the following
+    // _broadcastSubscript = null;
   }
 }

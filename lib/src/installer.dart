@@ -71,7 +71,7 @@ class Installer {
   Future _obtainRoot() async {
     var input = '';
     while (input != 'y' && input != 'n') {
-      print("To continue, we need to run as root. Obtain root? (y/n)");
+      stdout.write("To continue, we need to run as root. Obtain root (y/n)? ");
       input = stdin.readLineSync().toLowerCase().trim();
     }
 

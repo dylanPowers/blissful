@@ -1,13 +1,14 @@
-#!/bin/bash
+#! /usr/bin/env bash
 
 set -e
 
-echo "Warning! This script isn't complete yet and a little untested!"
-#set -x
-#exit 1
+echo \
+"Warning! This script isn't complete yet. In particular the interactive
+installation mode doesn't work yet.
+"
 
 type apt-get &>/dev/null
-if [ $? -ne 0 ]; then 
+if [ $? -ne 0 ]; then
   echo "This system doesn't have the apt package manager. I don't know what to do."
   echo "Maybe you should modify this script to add support for additional package managers???"
   exit
@@ -87,7 +88,8 @@ checkout_git_dep() { install_dir=$1; remote=$2; version=$3
 }
 
 checkout_git_dep $install_dir $github_url master
-chmod -R 770 $install_dir
+chmod -R o-rwx $install_dir
 cd $install_dir
 
+# Doesn't actually work yet
 blissful --interactive

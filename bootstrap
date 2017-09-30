@@ -7,6 +7,13 @@ echo \
 installation mode doesn't work yet.
 "
 
+while true; do
+	read -p "Obtain root to install packages? (y/n): " root_install
+	case $root_install
+		y|Y|yes) 
+	esac
+done
+
 type apt-get &>/dev/null
 if [ $? -ne 0 ]; then
   echo "This system doesn't have the apt package manager. I don't know what to do."

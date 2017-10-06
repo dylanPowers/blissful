@@ -7,37 +7,65 @@ echo \
 installation mode doesn't work yet.
 "
 
+install_dart_root() {
+  type apt-get &>/dev/null
+  if [ $? -ne 0 ]; then
+    echo "This system doesn't have the apt package manager. I don't know what to do."
+    echo "Maybe you should modify this script to add support for additional package managers???"
+    exit
+  fi
+
+  packages_to_install="git openssh-client apt-transport-https"
+  sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get install $packages_to_install
+
+  if ! type dart &>/dev/null; then
+    # Curtesy of https://www.dartlang.org/install/linux
+    sudo sh -c 'curl https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -'
+    sudo sh -c 'curl \
+      https://storage.googleapis.com/download.dartlang.org/linux/debian/dart_stable.list \
+      > \
+      /etc/apt/sources.list.d/dart_stable.list'
+
+    sudo apt-get update && sudo apt-get install dart
+  fi
+
+  if ! type pub &>/dev/null; then
+    sudo ln -s /usr/lib/dart/bin/pub /usr/local/bin/pub
+  fi
+}
+
+install_dart_local() {
+  SHA256="f774330896e60df918848075f3f1d9ada414bcce4fe81504e2646a79536eb333"
+  VERSION="1.24.2"
+  ZIP_LOCATION="$HOME/Downloads/dartsdk-linux-x64-release.zip"
+  INSTALL_LOCATION="$HOME/.local/lib"
+
+  mkdir -p $HOME/Downloads
+  mkdir -p "$INSTALL_LOCATION"
+
+  curl \
+    -o "$ZIP_LOCATION" \
+    https://storage.googleapis.com/dart-archive/channels/stable/release/$VERSION/sdk/dartsdk-linux-x64-release.zip
+  hash=$(sha256sum $HOME/Downloads/dartsdk-linux-x64-release.zip | awk '{ print $1 }')
+  [[ $hash == $SHA256 ]] || (echo -e "SHA256 sum failed.\n\tExpected:\t$SHA256\n\tGot:\t\t$hash" && exit 1)
+
+  unzip "$ZIP_LOCATION" -d "$INSTALL_LOCATION"
+
+  ln -s "$INSTALL_LOCATION/dart-sdk/bin/dart" "$HOME/bin/dart"
+  ln -s "$INSTALL_LOCATION/dart-sdk/bin/pub"  "$HOME/bin/pub"
+}
+
 while true; do
 	read -p "Obtain root to install packages? (y/n): " root_install
-	case $root_install
-		y|Y|yes) 
+	case $root_install in
+		[yY] | yes)
+      install_dart_root
+      break;;
+    [nN] | no)
+      install_dart_local
+      break;;
 	esac
 done
-
-type apt-get &>/dev/null
-if [ $? -ne 0 ]; then
-  echo "This system doesn't have the apt package manager. I don't know what to do."
-  echo "Maybe you should modify this script to add support for additional package managers???"
-  exit
-fi
-
-packages_to_install="git openssh-client apt-transport-https"
-sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get install $packages_to_install
-
-if ! type dart &>/dev/null; then
-  # Curtesy of https://www.dartlang.org/install/linux
-  sudo sh -c 'curl https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -'
-  sudo sh -c 'curl \
-    https://storage.googleapis.com/download.dartlang.org/linux/debian/dart_stable.list \
-    > \
-    /etc/apt/sources.list.d/dart_stable.list'
-
-  sudo apt-get update && sudo apt-get install dart
-fi
-
-if ! type pub &>/dev/null; then
-	sudo ln -s /usr/lib/dart/bin/pub /usr/local/bin/pub
-fi
 
 pub global activate --source path .
 export PATH="$PATH":"~/.pub-cache/bin"

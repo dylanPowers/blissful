@@ -40,8 +40,9 @@ install_dart_local() {
   ZIP_LOCATION="$HOME/Downloads/dartsdk-linux-x64-release.zip"
   INSTALL_LOCATION="$HOME/.local/lib"
 
-  mkdir -p $HOME/Downloads
+  mkdir -p "$HOME/Downloads"
   mkdir -p "$INSTALL_LOCATION"
+  mkdir -p "$HOME/bin"
 
   curl \
     -o "$ZIP_LOCATION" \
@@ -55,17 +56,22 @@ install_dart_local() {
   ln -s "$INSTALL_LOCATION/dart-sdk/bin/pub"  "$HOME/bin/pub"
 }
 
-while true; do
-	read -p "Obtain root to install packages? (y/n): " root_install
-	case $root_install in
-		[yY] | yes)
-      install_dart_root
-      break;;
-    [nN] | no)
-      install_dart_local
-      break;;
-	esac
-done
+
+if ! type dart &>/dev/null || ! type pub &>/dev/null; then
+  while true; do
+    read -p "Obtain root to install dart (otherwise does a local install)? " root_install
+    case $root_install in
+      [yY] | yes)
+        install_dart_root
+        break;;
+      [nN] | no)
+        echo "OK, installing dart locally then"
+        sleep 2
+        install_dart_local
+        break;;
+    esac
+  done
+fi
 
 pub global activate --source path .
 export PATH="$PATH":"~/.pub-cache/bin"

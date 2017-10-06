@@ -7,6 +7,8 @@ echo \
 installation mode doesn't work yet.
 "
 
+trap "{ exit 1; }" SIGINT SIGTERM
+
 install_dart_root() {
   type apt-get &>/dev/null
   if [ $? -ne 0 ]; then
@@ -54,6 +56,7 @@ install_dart_local() {
 
   ln -s "$INSTALL_LOCATION/dart-sdk/bin/dart" "$HOME/bin/dart"
   ln -s "$INSTALL_LOCATION/dart-sdk/bin/pub"  "$HOME/bin/pub"
+  export PATH="$PATH:/$HOME/bin"
 }
 
 

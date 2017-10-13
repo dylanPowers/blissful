@@ -78,6 +78,13 @@ class SyncedFSNode {
     if (dryRun) print("Copying ${_targetUri.toFilePath()} to ${_syncUri.toFilePath()}");
     else {
       new File.fromUri(_targetUri).copySync(_syncUri.toFilePath());
+
+      // This is to allow read by others on copied files. It would be best
+      // however to have a configuration option that allows for explicitly
+      // setting the right permissions. This is an appropriate stop-gap
+      // measure for the moment.
+      Process.runSync('chmod', ['o+r', '${_syncUri.toFilePath()}']);
+
       if (backupF.existsSync()) {
         backupF.renameSync(_targetUri.toFilePath());
       }

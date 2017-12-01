@@ -31,13 +31,11 @@ class InteractiveProcess {
   }
 
   Future exec() async {
-    print("Starting process ${executable} ${arguments}");
     io.Process process = await io.Process.start(executable, arguments,
         workingDirectory: workingDirectory, environment: environment,
         runInShell: runInShell);
     _enableProcessInteraction(process);
     var exitCode = await process.exitCode;
-    print("Process exited");
     await _stdinHandle.cancel();
 
     if (exitCode != 0) {
@@ -90,12 +88,10 @@ class BroadcastedStdin {
   }
 
   static void _onBroadcastListen(StreamSubscription streamSubscript) {
-    print("Broadcast listening now");
     _broadcastSubscript = streamSubscript;
   }
 
   static void _onBroadcastListenCancel(StreamSubscription streamSubscript) {
-    print("Broadcast listen cancel");
     // "If...[the broadcast stream]...later gets a new listener,
     // the [onListen] function is called again."
     // I've actually found this to not be true, or else we'd have the following

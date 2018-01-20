@@ -63,7 +63,8 @@ class BasicBliss {
 
   List<SyncedFSNode> binaries = [];
   List<SyncedFSNode> rootBinaries = [];
-  String dotfilesPath = _dotfilesPathDefault;
+  String _dotfilesPathBase = _dotfilesPathDefault;
+  String get dotfilesPath => _dotfilesPathBase;
   String installPath = _installPathDefault;
   HashSet<String> _debPkgs = new HashSet<String>();
   HashSet<String> get debPkgs => _debPkgs;
@@ -88,11 +89,11 @@ class BasicBliss {
         rootBinaries = (v as List).map((item) =>
             new SyncedFSNode.fromPrimitive(item, true)); break;
       case 'dotfiles-path':
-        dotfilesPath += '/' + (v as String);
+        _dotfilesPathBase += '/' + (v as String);
         if (installPath == _installPathDefault) installPath += '/' + v;
         break;
       case 'install-path':
-        installPath += '/' + (v as String); break;
+        installPath = _installPathDefault + '/' + (v as String); break;
       case 'deb-pkgs':
         _debPkgs.addAll(v as List<String>); break;
       default:
@@ -193,10 +194,21 @@ class AppBliss extends RootBasicBliss {
   @override
   HashSet<String> get debPkgs => _flattenDebPkgs();
 
+  @override
+  String get dotfilesPath {
+    if (_version.dotfilesPath != BasicBliss._dotfilesPathDefault) {
+      // Explicit overrides the entire thing
+      return _dotfilesPathDefault + '/' + _version.dotfilesPath;
+    } else {
+      // Implicit just appends the version
+      return _dotfilesPathBase + '/' + _version.name;
+    }
+  }
+
   VersionBliss _version;
   set version(String value)  {
     try {
-      _version = versions.firstWhere((v) => v.name == value);
+      _setVersion(versions.firstWhere((v) => v.name == value));
     } catch (StateError) {
       throw "The version string $value doesn't exist for the app $name";
     }
@@ -205,16 +217,18 @@ class AppBliss extends RootBasicBliss {
   AppBliss.fromMap(String name, Map<String, dynamic> map) :
       super.fromMap(name, map) {
     if (versions.isNotEmpty) {
-      _version = versions.last;
-      dotfilesPath += '/' + _version.name;
+      _setVersion(versions.last);
+    }
+  }
+
+  void _setVersion(VersionBliss v) {
+      _version = v;
+
+      // There's nothing fancy with the implicitely given installPath unlike the
+      // dotfilesPath
       if (_version.installPath != BasicBliss._installPathDefault) {
          installPath = _version.installPath;
       }
-
-      if (_version.dotfilesPath != BasicBliss._dotfilesPathDefault) {
-       dotfilesPath = _version.dotfilesPath;
-      }
-    }
   }
 
   @override

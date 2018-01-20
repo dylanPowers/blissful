@@ -31,7 +31,7 @@ class SyncedFSNode {
     _workingDir = new Directory('.').resolveSymbolicLinksSync();
     _targetUri = new Uri.file("$_workingDir/${dotfilesPath}/${target}");
     _targetUri = _fileUriNormalize(_targetUri);
-    _syncUri = new Uri.file("${installPath}/${syncName}");
+    _syncUri = _fileUriNormalize(new Uri.file("${installPath}/${syncName}"));
   }
 
   void link(String dotfilesPath, String installPath, dryRun) {
@@ -41,7 +41,7 @@ class SyncedFSNode {
     var linkType = _fsTypeSync(_syncUri);
 
     if (linkType != FileSystemEntityType.NOT_FOUND &&
-        linkType != FileSystemEntityType.LINK || _isLinkValid(link)) {
+        (linkType != FileSystemEntityType.LINK || _isLinkValid(link))) {
       var currentTarget = new Uri.file(link.resolveSymbolicLinksSync());
       currentTarget = _fileUriNormalize(currentTarget);
 
@@ -55,8 +55,8 @@ class SyncedFSNode {
 
     if (FileStat.statSync(_targetUri.toFilePath()).type ==
         FileSystemEntityType.NOT_FOUND && !dryRun) {
-       print("Skipping ${link.path}. Link and target don't exist");
-       return;
+      print("Skipping ${link.path}. Link and target don't exist");
+      return;
     }
 
     _forceCreateLink(link, _syncUri, linkType, _targetUri, dryRun);
@@ -188,6 +188,8 @@ class SyncedFSNode {
     }
   }
 
+  // If this isn't working correctly, make sure the URI has been normalized first
+  // with _fileUriNormalize
   FileSystemEntityType _fsTypeSync(Uri uri) {
     var type = FileStat.statSync(uri.toFilePath()).type;
     // Now manually check if it's a link

@@ -9,6 +9,8 @@ installation mode doesn't work yet.
 
 trap "{ exit 1; }" SIGINT SIGTERM
 
+DART_VERSION=1.24.3
+
 install_dart_root() {
   type apt-get &>/dev/null
   if [ $? -ne 0 ]; then
@@ -28,7 +30,7 @@ install_dart_root() {
       > \
       /etc/apt/sources.list.d/dart_stable.list'
 
-    sudo apt-get update && sudo apt-get install dart=1.24.3-1 && sudo apt-mark hold dart
+    sudo apt-get update && sudo apt-get install dart=${DART_VERSION}-1 && sudo apt-mark hold dart
   fi
 
   if ! type pub &>/dev/null; then
@@ -38,7 +40,6 @@ install_dart_root() {
 
 install_dart_local() {
   SHA256="f774330896e60df918848075f3f1d9ada414bcce4fe81504e2646a79536eb333"
-  VERSION="1.24.2"
   ZIP_LOCATION="$HOME/Downloads/dartsdk-linux-x64-release.zip"
   INSTALL_LOCATION="$HOME/.local/lib"
 
@@ -48,7 +49,7 @@ install_dart_local() {
 
   curl \
     -o "$ZIP_LOCATION" \
-    https://storage.googleapis.com/dart-archive/channels/stable/release/$VERSION/sdk/dartsdk-linux-x64-release.zip
+    https://storage.googleapis.com/dart-archive/channels/stable/release/$DART_VERSION/sdk/dartsdk-linux-x64-release.zip
   hash=$(sha256sum $HOME/Downloads/dartsdk-linux-x64-release.zip | awk '{ print $1 }')
   [[ $hash == $SHA256 ]] || (echo -e "SHA256 sum failed.\n\tExpected:\t$SHA256\n\tGot:\t\t$hash" && exit 1)
 

@@ -73,6 +73,7 @@ class SyncedFSNode {
     if (existingF.existsSync()) {
       if (dryRun) print("Backing up ${_syncUri.toFilePath()} to ${backupF.path}");
       else {
+        backupF.parent.createSync(recursive: true);
         existingF.copySync("${backupF.path}");
       }
 

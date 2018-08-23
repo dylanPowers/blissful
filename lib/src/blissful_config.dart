@@ -196,7 +196,8 @@ class AppBliss extends RootBasicBliss {
 
   @override
   String get dotfilesPath {
-    if (_version.dotfilesPath != BasicBliss._dotfilesPathDefault) {
+    if (versions.isEmpty) return super.dotfilesPath;
+    else if (_version.dotfilesPath != BasicBliss._dotfilesPathDefault) {
       // Explicit overrides the entire thing
       return _dotfilesPathDefault + '/' + _version.dotfilesPath;
     } else {

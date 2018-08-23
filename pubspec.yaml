@@ -7,7 +7,7 @@ author: Dylan Powers <dylan.kyle.powers@gmail.com>
 executables:
   blissful: blissful
 environment:
-  sdk: ">=1.22.1"
+  sdk: ">=1.22.1 <2.0.0"
 dependencies:
   args: '>=0.13.7 <0.14.0'
   yaml: '>=2.1.12 <2.2.0'

@@ -95,9 +95,8 @@ class SyncedFSNode {
         // measure for the moment.
         Process.runSync('chmod', ['o+r', '${_syncUri.toFilePath()}']);
       }
-    }
-
-    if (fileBackedUp) {
+    } else if (fileBackedUp) {
+      // This is for when the file doesn't already exist in the repo, so we'll automatically add it
       if (dryRun) print("Moving ${backupF.path} to ${_targetUri.toFilePath()}");
       else {
         backupF.renameSync(_targetUri.toFilePath());

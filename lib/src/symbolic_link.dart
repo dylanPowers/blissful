@@ -72,7 +72,26 @@ class SyncedFSNode {
 
     if (existingF.existsSync()) {
       if (dryRun) print("Backing up ${_syncUri.toFilePath()} to ${backupF.path}");
-      else {
+      else if (backupF.existsSync()) {
+        print("Backup file ${backupF.path} already exists. Skipping ${newF.path}");
+        return;
+
+        // stdin isn't working for some reason
+        //
+        // var input = '';
+        // while (input != 'y' && input != 'n') {
+        //   stdout.write("Backup file ${backupF.path} already exists. Overwrite (y/n)? ");
+        //   stdout.write("${stdin.hasTerminal}");
+        //   input = stdin.readLineSync().toLowerCase().trim();
+        // }
+
+        // if (input == 'y') {
+        //   existingF.copySync("${backupF.path}");
+        // } else {
+        //   print("Skipping ${newF.path}. Unable to backup existing file");
+        //   return;
+        // }
+      } else {
         backupF.parent.createSync(recursive: true);
         existingF.copySync("${backupF.path}");
       }

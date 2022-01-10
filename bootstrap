@@ -19,7 +19,7 @@ install_dart_root() {
     exit
   fi
 
-  packages_to_install="git openssh-client apt-transport-https"
+  packages_to_install="curl git openssh-client apt-transport-https"
   sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get install $packages_to_install
 
   if ! type dart &>/dev/null; then

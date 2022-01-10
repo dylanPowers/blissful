@@ -77,7 +77,7 @@ class BroadcastedStdin {
   }
 
   /**
-   * This will kill all instances of this listener. Call this when progrm
+   * This will kill all instances of this listener. Call this when program
    * execution needs to finished. Failing to call this will result in a program
    * that will never end as it will be stuck waiting on user input.
    */

@@ -65,15 +65,15 @@ class SyncedFSNode {
   void cp(String dotfilesPath, String installPath, dryRun) {
     _initURIs(dotfilesPath, installPath);
 
-    var existingF = new File.fromUri(_syncUri);
-    var newF = new File.fromUri(_targetUri);
+    var syncF = new File.fromUri(_syncUri);
+    var targetF = new File.fromUri(_targetUri);
     var backupF = new File(_targetUri.toFilePath() + ".bak");
     var fileBackedUp = false;
 
-    if (existingF.existsSync()) {
+    if (syncF.existsSync()) {
       if (dryRun) print("Backing up ${_syncUri.toFilePath()} to ${backupF.path}");
       else if (backupF.existsSync()) {
-        print("Backup file ${backupF.path} already exists. Skipping ${newF.path}");
+        print("Backup file ${backupF.path} already exists. Skipping ${targetF.path}");
         return;
 
         // stdin isn't working for some reason
@@ -86,27 +86,28 @@ class SyncedFSNode {
         // }
 
         // if (input == 'y') {
-        //   existingF.copySync("${backupF.path}");
+        //   syncF.copySync("${backupF.path}");
         // } else {
-        //   print("Skipping ${newF.path}. Unable to backup existing file");
+        //   print("Skipping ${targetF.path}. Unable to backup existing file");
         //   return;
         // }
       } else {
         backupF.parent.createSync(recursive: true);
-        existingF.copySync("${backupF.path}");
+        syncF.copySync("${backupF.path}");
       }
 
       fileBackedUp = true;
     }
 
 
-    if (newF.existsSync()) {
+    if (targetF.existsSync()) {
       if (dryRun) print("Copying ${_targetUri.toFilePath()} to ${_syncUri.toFilePath()}");
       else {
         // We have to delete first because the file could be a symlink which
         // screws things up with Dart.
         _deletePath(_syncUri, _fsTypeSync(_syncUri));
-        newF.copySync(_syncUri.toFilePath());
+        syncF.parent.createSync(recursive: true);
+        targetF.copySync(_syncUri.toFilePath());
 
         // This is to allow read by others on copied files. It would be best
         // however to have a configuration option that allows for explicitly
@@ -122,8 +123,8 @@ class SyncedFSNode {
       }
     }
 
-    if (!existingF.existsSync() && !newF.existsSync()) {
-      print("Skipping ${newF.path}. No files exist");
+    if (!syncF.existsSync() && !targetF.existsSync()) {
+      print("Skipping ${targetF.path}. No files exist");
     }
   }
 
